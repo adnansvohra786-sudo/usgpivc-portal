@@ -1,0 +1,1559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HHFT - Ultrasound-Guided Peripheral Cannulation Portal</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Custom Chart Containers to satisfy strict layout constraints */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 380px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 340px;
+            }
+        }
+        .tab-btn.active {
+            border-bottom-color: #005A9C;
+            color: #005A9C;
+            font-weight: 700;
+            background-color: #EFF6FF;
+        }
+        /* Custom scrollbar styling for clean UI */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F1F5F9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94A3B8;
+        }
+    </style>
+</head>
+<!-- Chosen Palette: Warm NHS Clinical Minimalist (NHS Deep Blue #005A9C, Slate Neutral, Emerald/Teal accents) -->
+<!-- Application Structure Plan: Designed as a 6-section interactive portal with tab navigation tailored for clinical learning and operational governance at HHFT. 1. Executive Summary & Interactive A-DIVA Calculator (for immediate bedside decision-making). 2. Upper Limb Sono-Anatomy Explorer (interactive tri-structure comparison & Video 1 for Gain/Depth control). 3. Procedural SOP & Clinical Tools (Static 45-degree equidistant geometry visualizer, Video 2 for Vanishing Target Technique, & VBG arterial verification flow). 4. Interactive 15-Minute Theory Slide Simulator (with timer, visual guidance, and complete speaker scripts for trainers). 5. Practical 3-Station Workshop Guide. 6. Governance, DOPS Checklist, Google Account Telemetry Audit Tracker, & Reference List. -->
+<!-- Visualization & Content Choices: 
+     - A-DIVA Failure Probability & Cochrane Access Success: Interactive Chart.js Bar Charts (Canvas based, maintaining aspect ratio constraints).
+     - Sono-Anatomy Matrix: Dynamic HTML/CSS visual card toggle comparing Vein, Artery, and Nerve features without SVG.
+     - 45-Degree Equidistant Diagram: Canvas-rendered graphic emphasizing distance importance (d = h) at 45 degrees.
+     - Educational Videos: Embedded responsive video players for Gain/Depth Optimization and Vanishing Target Technique.
+     - Telemetry & Audit System: LocalStorage event logger with optional GA4 and Google Apps Script Webhook integration for real-time tracking.
+-->
+<!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- Top NHS HHFT Header -->
+    <header class="bg-blue-900 text-white shadow-lg border-b-4 border-sky-400">
+        <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white text-blue-900 font-black px-3 py-1 rounded text-xl tracking-wider shadow">NHS</div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">Hampshire Hospitals NHS Foundation Trust</h1>
+                    <p class="text-xs text-sky-200">Ultrasound-Guided Peripheral Intravenous Cannulation (USGPIVC) Clinical & Training Portal</p>
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 text-xs">
+                <div class="bg-blue-950 px-3 py-1.5 rounded-lg border border-blue-800 flex items-center gap-2">
+                    <span class="inline-block w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                    <span>Status: <strong class="text-white">HHFT-SOP-2026 Approved</strong></span>
+                </div>
+                <button onclick="switchTab('governance')" class="bg-sky-700 hover:bg-sky-600 px-3 py-1.5 rounded-lg border border-sky-500 font-semibold text-white transition flex items-center gap-1">
+                    <span>📈</span> Audit Tracker
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
+            <div class="flex space-x-1 sm:space-x-4 overflow-x-auto py-2 text-xs sm:text-sm font-medium">
+                <button onclick="switchTab('overview')" id="tab-overview" class="tab-btn active px-3 py-2 rounded-md transition duration-150 whitespace-nowrap flex items-center gap-1.5">
+                    <span>📊</span> Risk & Overview
+                </button>
+                <button onclick="switchTab('anatomy')" id="tab-anatomy" class="tab-btn px-3 py-2 rounded-md transition duration-150 whitespace-nowrap flex items-center gap-1.5">
+                    <span>🔍</span> Sono-Anatomy & Videos
+                </button>
+                <button onclick="switchTab('sop')" id="tab-sop" class="tab-btn px-3 py-2 rounded-md transition duration-150 whitespace-nowrap flex items-center gap-1.5">
+                    <span>💉</span> SOP & Clinical Tools
+                </button>
+                <button onclick="switchTab('slides')" id="tab-slides" class="tab-btn px-3 py-2 rounded-md transition duration-150 whitespace-nowrap flex items-center gap-1.5">
+                    <span>💻</span> 15-Min Theory Module
+                </button>
+                <button onclick="switchTab('workshop')" id="tab-workshop" class="tab-btn px-3 py-2 rounded-md transition duration-150 whitespace-nowrap flex items-center gap-1.5">
+                    <span>🏋️</span> Practical Workshop
+                </button>
+                <button onclick="switchTab('governance')" id="tab-governance" class="tab-btn px-3 py-2 rounded-md transition duration-150 whitespace-nowrap flex items-center gap-1.5">
+                    <span>📜</span> Governance & Audit Log
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6 sm:px-6 lg:px-8">
+
+        <!-- ================= SECTION 1: OVERVIEW & A-DIVA CALCULATOR ================= -->
+        <section id="sec-overview" class="space-y-6">
+            <!-- Section Intro -->
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <h2 class="text-2xl font-bold text-blue-900 mb-2">Standard Operating Procedure & Risk Stratification Overview</h2>
+                <p class="text-slate-600 leading-relaxed text-sm sm:text-base">
+                    This Standard Operating Procedure (SOP) standardises the execution of Ultrasound-Guided Peripheral Intravenous Cannulation (USGPIVC) across all acute admitting units, EDs, and inpatient wards within Hampshire Hospitals NHS Foundation Trust (HHFT). Transitioning from blind palpation to real-time ultrasound guidance significantly reduces mechanical complications, minimizes patient pain, and avoids unnecessary central line or midline escalation.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Interactive A-DIVA Calculator Card -->
+                <div class="lg:col-span-7 bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between border-b pb-3 mb-4">
+                            <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
+                                <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-semibold">Calculator</span>
+                                Adult Difficult Intravenous Access (A-DIVA) Assessment
+                            </h3>
+                            <span class="text-xs text-slate-500">van Loon et al. (2019)</span>
+                        </div>
+                        <p class="text-xs text-slate-500 mb-4">Select all clinical risk factors observed during upper limb physical evaluation:</p>
+
+                        <div class="space-y-3">
+                            <label class="flex items-start p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer transition">
+                                <input type="checkbox" id="adiva-1" onchange="calcAdiva()" class="mt-1 h-4 w-4 text-blue-600 rounded border-slate-300">
+                                <span class="ml-3 text-sm text-slate-700">
+                                    <strong class="text-slate-900">History of DIVA:</strong> Documented clinical history or patient self-report of previous access difficulty. (+1)
+                                </span>
+                            </label>
+
+                            <label class="flex items-start p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer transition">
+                                <input type="checkbox" id="adiva-2" onchange="calcAdiva()" class="mt-1 h-4 w-4 text-blue-600 rounded border-slate-300">
+                                <span class="ml-3 text-sm text-slate-700">
+                                    <strong class="text-slate-900">Predicted First-Attempt Failure:</strong> Operator clinical intuition predicts failure on initial attempt. (+1)
+                                </span>
+                            </label>
+
+                            <label class="flex items-start p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer transition">
+                                <input type="checkbox" id="adiva-3" onchange="calcAdiva()" class="mt-1 h-4 w-4 text-blue-600 rounded border-slate-300">
+                                <span class="ml-3 text-sm text-slate-700">
+                                    <strong class="text-slate-900">Inability to Palpate:</strong> Absence of distended target vein on manual palpation. (+1)
+                                </span>
+                            </label>
+
+                            <label class="flex items-start p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer transition">
+                                <input type="checkbox" id="adiva-4" onchange="calcAdiva()" class="mt-1 h-4 w-4 text-blue-600 rounded border-slate-300">
+                                <span class="ml-3 text-sm text-slate-700">
+                                    <strong class="text-slate-900">Inability to Visualize:</strong> Absence of distended target vein on visual inspection. (+1)
+                                </span>
+                            </label>
+
+                            <label class="flex items-start p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer transition">
+                                <input type="checkbox" id="adiva-5" onchange="calcAdiva()" class="mt-1 h-4 w-4 text-blue-600 rounded border-slate-300">
+                                <span class="ml-3 text-sm text-slate-700">
+                                    <strong class="text-slate-900">Sub-optimal Vessel Caliber:</strong> Largest dilated vein diameter is &lt; 3 millimetres. (+1)
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Calculator Output Display -->
+                    <div id="adiva-result-box" class="mt-6 p-4 rounded-lg bg-emerald-50 border border-emerald-200 transition-all">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="text-xs uppercase font-bold text-emerald-800 tracking-wider">A-DIVA Score</span>
+                                <div class="text-3xl font-extrabold text-emerald-900" id="adiva-score-num">0 / 5</div>
+                            </div>
+                            <div class="text-right">
+                                <span id="adiva-risk-badge" class="px-3 py-1 bg-emerald-200 text-emerald-900 text-xs font-bold rounded-full">Low Risk</span>
+                                <p class="text-xs font-semibold text-emerald-800 mt-1" id="adiva-failure-rate">Predicted Failure Rate: ~4%</p>
+                            </div>
+                        </div>
+                        <p class="text-xs text-emerald-900 mt-2 font-medium border-t border-emerald-200 pt-2" id="adiva-action-text">
+                            <strong>Clinical Action:</strong> Proceed with standard landmark-guided cannulation.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Charts Container (2 Column layout) -->
+                <div class="lg:col-span-5 space-y-6">
+                    <!-- Chart 1: A-DIVA Failure Probability -->
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">First-Attempt Failure Risk by A-DIVA Category</h4>
+                        <div class="chart-container">
+                            <canvas id="adivaChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Chart 2: Cochrane Evidence Success Rates -->
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                        <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Cochrane Evidence: USG vs Landmark First-Pass Success</h4>
+                        <div class="chart-container">
+                            <canvas id="cochraneChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECTION 2: SONO-ANATOMY EXPLORER ================= -->
+        <section id="sec-anatomy" class="space-y-6 hidden">
+            <!-- Section Intro -->
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <h2 class="text-2xl font-bold text-blue-900 mb-2">Upper Limb Vascular & Sono-Anatomical Architecture</h2>
+                <p class="text-slate-600 leading-relaxed text-sm sm:text-base">
+                    Safe execution of USGPIVC requires precise differentiation between target superficial veins, adjacent companion arteries, and neural bundles. Target vessels must be selected according to strict depth, diameter, and trajectory parameters to optimize catheter longevity and eliminate mechanical complications.
+                </p>
+            </div>
+
+            <!-- Video Module 1: Gain & Depth Control -->
+            <div class="bg-white p-6 rounded-xl border border-blue-200 shadow-sm">
+                <div class="flex items-center justify-between border-b pb-3 mb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-1 bg-blue-100 text-blue-900 text-xs font-bold rounded-full">Video Module 1</span>
+                        <h3 class="font-bold text-lg text-slate-800">Ultrasound Machine Setup: Gain & Depth Control Teaching</h3>
+                    </div>
+                    <span class="text-xs text-slate-500 font-semibold">Clinical Skills Video</span>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                    <div class="lg:col-span-7 bg-black rounded-xl overflow-hidden shadow-inner aspect-video relative flex items-center justify-center">
+                        <iframe class="w-full h-full min-h-[250px]" 
+                                src="https://www.youtube-nocookie.com/embed/Axmh3oKBhCE" 
+                                title="Ultrasound Gain and Depth Control Teaching Video" 
+                                frameborder="0" 
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                allowfullscreen
+                                onplay="logAuditEvent('Video Play: Gain & Depth Control')">
+                        </iframe>
+                    </div>
+
+                    <div class="lg:col-span-5 space-y-3">
+                        <h4 class="font-bold text-sm text-blue-900 uppercase tracking-wider">Key Takeaways for Machine Optimization:</h4>
+                        
+                        <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-1">
+                            <strong class="text-slate-900 block">1. Depth Adjustment Rule:</strong>
+                            <p class="text-slate-600">Set depth so the target vessel occupies the upper-to-middle third of the display (typically 1.5 - 2.5 cm total depth). Avoid excessive depth which shrinks vessel resolution.</p>
+                        </div>
+
+                        <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-1">
+                            <strong class="text-slate-900 block">2. Gain Control Optimization:</strong>
+                            <p class="text-slate-600">Adjust overall gain until fluid-filled vessel lumens appear strictly <em>anechoic (black)</em> while surrounding connective tissue displays balanced echogenicity (grey).</p>
+                        </div>
+
+                        <div class="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900">
+                            <strong>Clinical Warning:</strong> Over-gaining causes lumen artifact noise (appearing grey/thrombosed), leading to misdiagnosis of occluded vessels.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Target Vessel Hierarchy & Preferred Zones -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-xl">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-lg">1️⃣</span>
+                        <h3 class="font-bold text-emerald-900 text-sm">Cephalic Vein (Forearm)</h3>
+                    </div>
+                    <p class="text-xs text-emerald-800 leading-relaxed">
+                        Courses along anterolateral forearm. <strong>Primary Preferred Target</strong> due to shallow predictable path, absence of adjacent named companion arteries, and high success rates.
+                    </p>
+                </div>
+
+                <div class="bg-sky-50 border border-sky-200 p-4 rounded-xl">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-lg">2️⃣</span>
+                        <h3 class="font-bold text-sky-900 text-sm">Basilic Vein (Forearm)</h3>
+                    </div>
+                    <p class="text-xs text-sky-800 leading-relaxed">
+                        Courses along posteromedial aspect of forearm. Excellent secondary target when straight, non-thrombosed segments &gt; 3mm lumen diameter are identified.
+                    </p>
+                </div>
+
+                <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-lg">⚠️</span>
+                        <h3 class="font-bold text-amber-900 text-sm">Upper Arm & Deep Zones</h3>
+                    </div>
+                    <p class="text-xs text-amber-800 leading-relaxed">
+                        Brachial, deep radial/ulnar veins, and upper arm basilic/cephalic veins are <strong>RESTRICTED</strong> for specialist team PICC/Midline placement to preserve vessels and prevent nerve trauma.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Interactive Sono-Anatomy Structural Matrix -->
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <h3 class="font-bold text-lg text-slate-800 mb-4 flex items-center justify-between">
+                    <span>Multimodal Sono-Anatomic Structural Comparison</span>
+                    <span class="text-xs font-normal text-slate-500">Click tabs below to inspect individual signatures</span>
+                </h3>
+
+                <!-- Structure Switcher Tabs -->
+                <div class="flex space-x-2 border-b border-slate-200 mb-6 pb-2">
+                    <button onclick="switchStructure('vein')" id="struct-tab-vein" class="px-4 py-2 rounded-lg text-xs font-bold bg-emerald-600 text-white transition">Vein (Target Structure)</button>
+                    <button onclick="switchStructure('artery')" id="struct-tab-artery" class="px-4 py-2 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">Artery (Non-Target Hazard)</button>
+                    <button onclick="switchStructure('nerve')" id="struct-tab-nerve" class="px-4 py-2 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">Nerve (Non-Target Hazard)</button>
+                </div>
+
+                <!-- Dynamic Detail Panel -->
+                <div id="structure-detail-panel" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
+                    <!-- JS Injected Content -->
+                </div>
+            </div>
+
+            <!-- BART Color Doppler & Mickey Mouse Complex Guide -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- BART Color Doppler Rule -->
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                    <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                        <span class="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">Rule</span>
+                        Color Doppler Verification & BART Mnemonic
+                    </h3>
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                        Color Doppler Mode visualises relative blood flow direction relative to the probe face using the standard <strong>BART</strong> convention:
+                    </p>
+                    <div class="grid grid-cols-2 gap-3 my-2">
+                        <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
+                            <span class="block text-xl font-black text-blue-700">BLUE</span>
+                            <span class="text-xs font-semibold text-blue-900">Away from Transducer</span>
+                        </div>
+                        <div class="p-3 bg-red-50 border border-red-200 rounded-lg text-center">
+                            <span class="block text-xl font-black text-red-700">RED</span>
+                            <span class="text-xs font-semibold text-red-900">Towards Transducer</span>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-amber-50 rounded-lg border border-amber-200 text-xs text-amber-900">
+                        <strong>Clinical Pearl:</strong> A blue Doppler signal does <em>not</em> automatically prove a vessel is venous! Flow direction depends entirely on transducer angle. Always verify using physical compression testing.
+                    </div>
+                </div>
+
+                <!-- Anatomical Hazard & Morphological Criteria -->
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                    <h3 class="font-bold text-slate-800 text-base">Ideal Target Vessel Criteria</h3>
+                    <ul class="space-y-2 text-xs text-slate-700">
+                        <li class="flex items-center gap-2 p-2 bg-slate-50 rounded border border-slate-200">
+                            <span class="text-emerald-600 font-bold">✔ Depth:</span> 5 mm to 10 mm (Maximum 15 mm / 1.5 cm from skin surface).
+                        </li>
+                        <li class="flex items-center gap-2 p-2 bg-slate-50 rounded border border-slate-200">
+                            <span class="text-emerald-600 font-bold">✔ Lumen Diameter:</span> Transverse internal caliber &ge; 3.0 mm (Preferably &ge; 5.0 mm).
+                        </li>
+                        <li class="flex items-center gap-2 p-2 bg-slate-50 rounded border border-slate-200">
+                            <span class="text-emerald-600 font-bold">✔ Trajectory:</span> Straight 20-30 mm path free of valves, tortuosity, or thrombus.
+                        </li>
+                        <li class="flex items-center gap-2 p-2 bg-red-50 rounded border border-red-200 text-red-900">
+                            <span class="text-red-600 font-bold">✖ Avoid "Mickey Mouse" Sign:</span> Central artery flanked by paired veins and nerves.
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECTION 3: SOP & CLINICAL TOOLS ================= -->
+        <section id="sec-sop" class="space-y-6 hidden">
+            <!-- Section Intro -->
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <h2 class="text-2xl font-bold text-blue-900 mb-2">Procedural Execution, Geometry & Complication Verification</h2>
+                <p class="text-slate-600 leading-relaxed text-sm sm:text-base">
+                    This section details the standardized clinical steps for USGPIVC execution under strict Aseptic Non-Touch Technique (ANTT), needle geometry, real-time dynamic tip tracking, and point-of-care verification algorithms for ambiguous punctures.
+                </p>
+            </div>
+
+            <!-- Static 45-Degree Equidistant Geometry Diagram & Importance Explanation -->
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <div class="border-b pb-3 mb-4">
+                    <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
+                        <span class="bg-sky-100 text-sky-800 text-xs px-2 py-1 rounded-full font-semibold">Anatomical Geometry</span>
+                        Needle Insertion Geometry: The $45^\circ$ Equidistant Entry Rule ($d = h$)
+                    </h3>
+                    <p class="text-xs text-slate-500">Understanding why skin entry distance must equal target vessel depth when using a 45-degree angle of approach.</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                    <!-- High-Resolution Graphic Visualizer (Canvas rendered) -->
+                    <div class="lg:col-span-7 bg-slate-900 p-4 rounded-xl flex flex-col justify-center items-center min-h-[260px]">
+                        <canvas id="static45Canvas" width="460" height="240" class="max-w-full"></canvas>
+                        <span class="text-[11px] text-slate-400 mt-2">Right-Angle Equidistant Triangle Rule: Skin Entry Distance ($d$) = Vessel Depth ($h$)</span>
+                    </div>
+
+                    <!-- Clinical Importance Text Column -->
+                    <div class="lg:col-span-5 space-y-3">
+                        <h4 class="font-bold text-sm text-blue-900 uppercase tracking-wider">Clinical Importance of Entry Distance ($d$):</h4>
+
+                        <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-1">
+                            <strong class="text-slate-900 block">1. Perfect Equidistant Trajectory ($d = h$):</strong>
+                            <p class="text-slate-600">When entering at $45^\circ$, the skin entry point MUST be positioned at a distance equal to the depth of the vessel center. For example, if vessel depth is 8 mm, skin entry is exactly 8 mm proximal to probe probe face center.</p>
+                        </div>
+
+                        <div class="p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs space-y-1 text-rose-900">
+                            <strong class="block font-bold">2. Hazards of Entry Too Close ($d < h$):</strong>
+                            <p>Forces an overly steep insertion angle ($>60^\circ$). This severely increases the risk of puncturing the posterior vessel wall, causing hematoma and catheter failure.</p>
+                        </div>
+
+                        <div class="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs space-y-1 text-amber-900">
+                            <strong class="block font-bold">3. Hazards of Entry Too Far ($d > h$):</strong>
+                            <p>Requires an overly shallow angle ($<30^\circ$). The needle travels excessive soft tissue distance, risking missing the target entirely or needing ultra-long catheters.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video Module 2: Vanishing Technique (Dynamic Chasing) -->
+            <div class="bg-white p-6 rounded-xl border border-sky-200 shadow-sm">
+                <div class="flex items-center justify-between border-b pb-3 mb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-1 bg-sky-100 text-sky-900 text-xs font-bold rounded-full">Video Module 2</span>
+                        <h3 class="font-bold text-lg text-slate-800">Dynamic Needle Tracking: The Vanishing Target Technique</h3>
+                    </div>
+                    <span class="text-xs text-slate-500 font-semibold">Procedural Technique Video</span>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                    <div class="lg:col-span-7 bg-black rounded-xl overflow-hidden shadow-inner aspect-video relative flex items-center justify-center">
+                        <iframe class="w-full h-full min-h-[250px]" 
+                                src="https://www.youtube-nocookie.com/embed/t2hd4l-Zqcc" 
+                                title="Vanishing Target Technique Teaching Video" 
+                                frameborder="0" 
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                allowfullscreen
+                                onplay="logAuditEvent('Video Play: Vanishing Technique')">
+                        </iframe>
+                    </div>
+
+                    <div class="lg:col-span-5 space-y-3">
+                        <h4 class="font-bold text-sm text-sky-900 uppercase tracking-wider">Video Technique Highlights:</h4>
+                        
+                        <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-1">
+                            <strong class="text-slate-900 block">1. Tip vs Shaft Distinction:</strong>
+                            <p class="text-slate-600">In short-axis (out-of-plane) imaging, a bright hyperechoic dot can represent either the needle tip or shaft. You must actively move the probe face to confirm tip position.</p>
+                        </div>
+
+                        <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-1">
+                            <strong class="text-slate-900 block">2. "Vanishing" Sliding Motion:</strong>
+                            <p class="text-slate-600">Slide probe 1-2 mm proximally until the bright dot vanishes from the screen, then advance the needle 1-2 mm until it reappears in the lumen center.</p>
+                        </div>
+
+                        <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-900">
+                            <strong>Safety Check:</strong> Never advance the needle assembly unless you observe active movement of the tip inside the vessel lumen.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Chasing Method Visualizer (4-Step Cards) -->
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <h3 class="font-bold text-lg text-slate-800 mb-2">Step-by-Step Workflow: Vanishing Target Technique</h3>
+                <p class="text-xs text-slate-600 mb-4">In Short-Axis (Out-of-Plane) imaging, follow the 4-step dynamic sliding sequence to ensure safe lumen placement:</p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                        <span class="w-6 h-6 rounded-full bg-blue-900 text-white text-xs font-bold inline-flex items-center justify-center">1</span>
+                        <h4 class="font-bold text-xs text-slate-800">Skin Entry & Target Acquisition</h4>
+                        <p class="text-xs text-slate-600">Enter skin at distance $d = h$. Advance until bright hyperechoic needle tip depresses anterior vessel wall ("tenting").</p>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                        <span class="w-6 h-6 rounded-full bg-blue-900 text-white text-xs font-bold inline-flex items-center justify-center">2</span>
+                        <h4 class="font-bold text-xs text-slate-800">Vanishing Target Sign</h4>
+                        <p class="text-xs text-slate-600">Slide probe 1-2 mm proximally along vessel path until hyperechoic dot disappears from ultrasound display.</p>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                        <span class="w-6 h-6 rounded-full bg-blue-900 text-white text-xs font-bold inline-flex items-center justify-center">3</span>
+                        <h4 class="font-bold text-xs text-slate-800">Needle Advancement</h4>
+                        <p class="text-xs text-slate-600">Hold probe steady in new position. Advance needle assembly 1-2 mm until bright dot reappears in lumen center.</p>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 space-y-2">
+                        <span class="w-6 h-6 rounded-full bg-emerald-700 text-white text-xs font-bold inline-flex items-center justify-center">4</span>
+                        <h4 class="font-bold text-xs text-emerald-900">Catheter Seating</h4>
+                        <p class="text-xs text-emerald-800">Repeat slide-and-advance sequence until &ge; 65% of catheter length resides within lumen before threading over needle.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VBG Arterial Verification Diagnostic Tool -->
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <div class="border-b pb-3 mb-4">
+                    <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
+                        <span class="bg-rose-100 text-rose-800 text-xs px-2 py-1 rounded-full font-semibold">Complication Protocol</span>
+                        Venous Blood Gas (VBG) Arterial Puncture Verification Tool
+                    </h3>
+                    <p class="text-xs text-slate-500">For ambiguous entries, high-pressure flashback, or deep vascular punctures</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <div class="lg:col-span-6 space-y-3">
+                        <p class="text-xs text-slate-600">Enter point-of-care blood gas parameters from cannula hub sample:</p>
+
+                        <div class="grid grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">pO₂ (kPa)</label>
+                                <input type="number" id="vbg-po2" step="0.1" value="4.8" class="w-full p-2 border border-slate-300 rounded text-sm focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">pCO₂ (kPa)</label>
+                                <input type="number" id="vbg-pco2" step="0.1" value="5.8" class="w-full p-2 border border-slate-300 rounded text-sm focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">sO₂ (%)</label>
+                                <input type="number" id="vbg-so2" step="1" value="72" class="w-full p-2 border border-slate-300 rounded text-sm focus:ring-blue-500">
+                            </div>
+                        </div>
+
+                        <button onclick="checkVBG()" class="w-full py-2.5 bg-blue-900 hover:bg-blue-800 text-white font-bold text-xs rounded-lg transition shadow">
+                            Analyze Blood Gas Profile
+                        </button>
+                    </div>
+
+                    <!-- Output Panel -->
+                    <div class="lg:col-span-6">
+                        <div id="vbg-result" class="p-4 rounded-xl bg-slate-100 border border-slate-300 h-full flex flex-col justify-center">
+                            <span class="text-xs font-bold uppercase text-slate-500 tracking-wider">Verification Output</span>
+                            <h4 id="vbg-status" class="text-lg font-bold text-slate-800 mt-1">Awaiting Sample Input...</h4>
+                            <p id="vbg-desc" class="text-xs text-slate-600 mt-2">Enter gas values above to determine whether the puncture is venous or inadvertent arterial entry.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECTION 4: 15-MIN THEORY SLIDE DECK ================= -->
+        <section id="sec-slides" class="space-y-6 hidden">
+            <!-- Section Intro -->
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-blue-900 mb-1">Integrated 15-Minute Theory Slide Module</h2>
+                        <p class="text-slate-600 text-sm">Interactive presentation deck for pre-workshop theoretical teaching sessions.</p>
+                    </div>
+                    <div class="flex items-center gap-3 bg-slate-100 px-3 py-2 rounded-lg border border-slate-200">
+                        <span class="text-xs font-bold text-slate-600">Module Timer:</span>
+                        <span id="slide-timer-display" class="font-mono font-bold text-blue-900 text-base">00:00 / 15:00</span>
+                        <button onclick="toggleTimer()" id="timer-btn" class="px-2 py-1 bg-blue-900 text-white text-xs rounded hover:bg-blue-800">Start</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide Deck Simulator Viewport -->
+            <div class="bg-slate-900 text-white p-6 sm:p-8 rounded-2xl shadow-xl min-h-[420px] flex flex-col justify-between border border-slate-800">
+                <!-- Slide Header Controls -->
+                <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-1 bg-sky-500/20 text-sky-300 border border-sky-500/30 text-xs font-bold rounded-full" id="slide-num-badge">Slide 1 of 10</span>
+                        <span class="text-xs text-slate-400" id="slide-time-alloc">Time: 1.0 min</span>
+                    </div>
+                    <div class="text-xs font-semibold text-slate-400 tracking-wider uppercase">HHFT USGPIVC Training</div>
+                </div>
+
+                <!-- Slide Core Content Area -->
+                <div id="slide-content-area" class="py-6 space-y-4">
+                    <!-- Dynamic Slide HTML Injected Here -->
+                </div>
+
+                <!-- Slide Footer Navigation Controls -->
+                <div class="border-t border-slate-800 pt-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <button onclick="changeSlide(-1)" class="w-full sm:w-auto px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-2">
+                        <span>◀</span> Previous Slide
+                    </button>
+
+                    <!-- Slide Progress Dots -->
+                    <div class="flex space-x-1.5" id="slide-dots-container">
+                        <!-- JS Injected Dots -->
+                    </div>
+
+                    <button onclick="changeSlide(1)" class="w-full sm:w-auto px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-2">
+                        Next Slide <span>▶</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Speaker Script Drawer -->
+            <div class="bg-amber-50 border border-amber-200 p-5 rounded-xl space-y-2">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-bold text-xs uppercase tracking-wider text-amber-900 flex items-center gap-2">
+                        <span>🎙️</span> Speaker Script for Presenter
+                    </h3>
+                    <span class="text-xs text-amber-800 italic">Verbatim guidance for instructor</span>
+                </div>
+                <p id="speaker-script-text" class="text-xs text-amber-950 leading-relaxed font-medium">
+                    "Welcome everyone. Today we standardize USGPIVC across HHFT..."
+                </p>
+            </div>
+        </section>
+
+        <!-- ================= SECTION 5: PRACTICAL WORKSHOP ================= -->
+        <section id="sec-workshop" class="space-y-6 hidden">
+            <!-- Section Intro -->
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <h2 class="text-2xl font-bold text-blue-900 mb-2">45-Minute Practical Hands-On Simulation Workshop</h2>
+                <p class="text-slate-600 leading-relaxed text-sm sm:text-base">
+                    Following the theoretical deck, trainees undergo a 45-minute practical workshop structured into three rotated simulation stations to consolidate machine configuration, needle tracking, and live volunteer anatomical scanning.
+                </p>
+            </div>
+
+            <!-- 3 Station Workflow Cards -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Station 1 -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between">
+                    <div class="p-5 space-y-3">
+                        <div class="flex justify-between items-center border-b pb-2">
+                            <span class="px-2.5 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-full">Station 1 (15 Mins)</span>
+                            <span class="text-xs text-slate-500">Machine & Prep</span>
+                        </div>
+                        <h3 class="font-bold text-base text-slate-800">Machine Controls & Sterile Sheath Setup</h3>
+                        <p class="text-xs text-slate-600">Practice probe selection, depth (&lt;3 cm) & gain adjustment, and deployment of sterile probe sheaths using single-use gel packets according to UKHSA rules.</p>
+
+                        <div class="space-y-1.5 pt-2">
+                            <span class="text-xs font-bold text-slate-700 block">Checklist Tasks:</span>
+                            <label class="flex items-center text-xs text-slate-600"><input type="checkbox" onchange="logAuditEvent('Workshop Task: Station 1 Step')" class="mr-2"> Select High-Freq Linear Probe</label>
+                            <label class="flex items-center text-xs text-slate-600"><input type="checkbox" onchange="logAuditEvent('Workshop Task: Station 1 Step')" class="mr-2"> Apply sterile gel inside sheath</label>
+                            <label class="flex items-center text-xs text-slate-600"><input type="checkbox" onchange="logAuditEvent('Workshop Task: Station 1 Step')" class="mr-2"> Pull sheath taut over probe face</label>
+                            <label class="flex items-center text-xs text-slate-600"><input type="checkbox" onchange="logAuditEvent('Workshop Task: Station 1 Step')" class="mr-2"> Apply gel on outer sheath tip</label>
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 p-3 border-t border-slate-200 text-xs text-slate-500 italic">
+                        Equipment: Ultrasound console, linear probe, sterile sheath kits, sterile gel sachets.
+                    </div>
+                </div>
+
+                <!-- Station 2 -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between">
+                    <div class="p-5 space-y-3">
+                        <div class="flex justify-between items-center border-b pb-2">
+                            <span class="px-2.5 py-1 bg-sky-100 text-sky-800 text-xs font-bold rounded-full">Station 2 (20 Mins)</span>
+                            <span class="text-xs text-slate-500">Phantom Blocks</span>
+                        </div>
+                        <h3 class="font-bold text-base text-slate-800">Dynamic Needle Tracking on Phantoms</h3>
+                        <p class="text-xs text-slate-600">Execute short-axis target acquisition, align the 45-degree equidistant entry point, and master the Vanishing Target Technique on synthetic phantom blocks.</p>
+
+                        <div class="space-y-1.5 pt-2">
+                            <span class="text-xs font-bold text-slate-700 block">Checklist Tasks:</span>
+                            <label class="flex items-center text-xs text-slate-600"><input type="checkbox" onchange="logAuditEvent('Workshop Task: Station 2 Step')" class="mr-2"> Position 45° skin entry distance (d = h)</label>
+                            <label class="flex items-center text-xs text-slate-600"><input type="checkbox" onchange="logAuditEvent('Workshop Task: Station 2 Step')" class="mr-2"> Identify needle tip "tenting"</label>
+                            <label class="flex items-center text-xs text-slate-600"><input type="checkbox" onchange="logAuditEvent('Workshop Task: Station 2 Step')" class="mr-2"> Execute probe sliding sequence</label>
+                            <label class="flex items-center text-xs text-slate-600"><input type="checkbox" onchange="logAuditEvent('Workshop Task: Station 2 Step')" class="mr-2"> Seat &gt;65% catheter before threading</label>
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 p-3 border-t border-slate-200 text-xs text-slate-500 italic">
+                        Equipment: Gelatin/silicone tissue phantoms, 18G/20G long cannulas, sharps bin.
+                    </div>
+                </div>
+
+                <!-- Station 3 -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between">
+                    <div class="p-5 space-y-3">
+                        <div class="flex justify-between items-center border-b pb-2">
+                            <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full">Station 3 (10 Mins)</span>
+                            <span class="text-xs text-slate-500">Live Volunteers</span>
+                        </div>
+                        <h3 class="font-bold text-base text-slate-800">Live Ergonomics & Anatomy Mapping</h3>
+                        <p class="text-xs text-slate-600">Practice live scanning on volunteer upper limbs. Establish straight line-of-sight positioning, hand stabilization, and execute compression / Color Doppler tests.</p>
+
+                        <div class="space-y-1.5 pt-2">
+                            <span class="text-xs font-bold text-slate-700 block">Checklist Tasks:</span>
+                            <label class="flex items-center text-xs text-slate-600"><input type="checkbox" onchange="logAuditEvent('Workshop Task: Station 3 Step')" class="mr-2"> Align display with line-of-sight</label>
+                            <label class="flex items-center text-xs text-slate-600"><input type="checkbox" onchange="logAuditEvent('Workshop Task: Station 3 Step')" class="mr-2"> Stabilize pinky finger on limb</label>
+                            <label class="flex items-center text-xs text-slate-600"><input type="checkbox" onchange="logAuditEvent('Workshop Task: Station 3 Step')" class="mr-2"> Differentiate vein from companion artery</label>
+                            <label class="flex items-center text-xs text-slate-600"><input type="checkbox" onchange="logAuditEvent('Workshop Task: Station 3 Step')" class="mr-2"> Apply BART Color Doppler rule</label>
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 p-3 border-t border-slate-200 text-xs text-slate-500 italic">
+                        Equipment: Volunteer subjects, examination couches, ultrasound systems.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= SECTION 6: GOVERNANCE, DOPS & AUDIT TRACKER ================= -->
+        <section id="sec-governance" class="space-y-6 hidden">
+            <!-- Section Intro -->
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <h2 class="text-2xl font-bold text-blue-900 mb-2">Clinical Governance, Credentialing & Interface Audit Tracker</h2>
+                <p class="text-slate-600 leading-relaxed text-sm sm:text-base">
+                    In accordance with HHFT clinical governance policies, junior doctors and healthcare practitioners must complete a formal credentialing pathway prior to undertaking unsupervised USGPIVC in clinical areas. Use the integrated Google Account Audit Tracker below to monitor platform usage and send usage logs directly to your Google analytics dashboard.
+                </p>
+            </div>
+
+            <!-- Interface Usage & Google Integration Tracker Panel -->
+            <div class="bg-white p-6 rounded-xl border border-blue-200 shadow-sm space-y-4">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-3 gap-3">
+                    <div>
+                        <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2.5 py-1 rounded-full font-semibold">Google Account Sync</span>
+                            Interface Usage & Telemetry Audit Tracker
+                        </h3>
+                        <p class="text-xs text-slate-500">Track user engagement, tab navigation, calculator use, and sync telemetry with Google Analytics or Google Sheets.</p>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button onclick="exportAuditCSV()" class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg transition shadow flex items-center gap-1">
+                            <span>📥</span> Export Audit Log (CSV)
+                        </button>
+                        <button onclick="clearAuditLog()" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-lg transition">
+                            Clear Log
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Google Account Integration Setup -->
+                <div class="p-4 bg-blue-50/70 rounded-xl border border-blue-200 grid grid-cols-1 md:grid-cols-12 gap-4 items-center text-xs">
+                    <div class="md:col-span-8 space-y-2">
+                        <label class="block font-bold text-blue-950">Google Account Tracking Integration:</label>
+                        <p class="text-slate-600 leading-relaxed">
+                            To send portal telemetry to your Google account, enter your <strong>Google Analytics 4 Measurement ID</strong> (e.g. <code>G-XXXXXXXXXX</code>) or a <strong>Google Apps Script / Form Webhook URL</strong>:
+                        </p>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <input type="text" id="ga-id-input" placeholder="e.g. G-ABC123XYZ or https://script.google.com/macros/s/..." class="flex-grow p-2 border border-slate-300 rounded text-xs focus:ring-blue-500">
+                            <button onclick="saveGoogleConfig()" class="px-4 py-2 bg-blue-900 hover:bg-blue-800 text-white font-bold rounded transition shrink-0">
+                                Save Google Sync
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-4 bg-white p-3 rounded-lg border border-blue-200 space-y-1">
+                        <span class="text-[11px] font-bold uppercase text-slate-500">Tracker Status</span>
+                        <div class="flex items-center gap-2">
+                            <span id="tracker-status-dot" class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                            <strong id="tracker-status-text" class="text-slate-800 font-bold">Local Logging Active</strong>
+                        </div>
+                        <p class="text-[11px] text-slate-500" id="tracker-events-count">Total Events Tracked: 0</p>
+                    </div>
+                </div>
+
+                <!-- Real-time Interaction Audit Log Table -->
+                <div class="space-y-2">
+                    <h4 class="font-bold text-xs uppercase tracking-wider text-slate-500">Recent User Action History (Local & Telemetry Stream):</h4>
+                    <div class="overflow-x-auto max-h-60 rounded-lg border border-slate-200">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 sticky top-0">
+                                <tr>
+                                    <th class="p-2.5">Timestamp</th>
+                                    <th class="p-2.5">Action Event</th>
+                                    <th class="p-2.5">Session ID</th>
+                                    <th class="p-2.5">Sync Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="audit-log-tbody" class="divide-y divide-slate-200 bg-white">
+                                <!-- JS Injected Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Pathway Milestones -->
+                <div class="lg:col-span-7 bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                    <h3 class="font-bold text-lg text-slate-800 border-b pb-2">HHFT Credentialing Roadmap</h3>
+
+                    <div class="space-y-4 text-xs">
+                        <div class="flex items-start gap-3">
+                            <span class="w-7 h-7 rounded-full bg-blue-900 text-white font-bold flex items-center justify-center shrink-0">1</span>
+                            <div>
+                                <strong class="text-slate-900 text-sm block">Theoretical & Simulation Training</strong>
+                                <p class="text-slate-600">Completion of 15-minute theory teaching module and attendance at 45-minute hands-on simulation workshop.</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-3">
+                            <span class="w-7 h-7 rounded-full bg-blue-900 text-white font-bold flex items-center justify-center shrink-0">2</span>
+                            <div>
+                                <strong class="text-slate-900 text-sm block">Supervised Clinical Logbook (10–15 Procedures)</strong>
+                                <p class="text-slate-600">Perform 10 to 15 direct or indirectly supervised USGPIVC procedures on patients, logging target vessel, caliber, cannula gauge, and clinical outcome.</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-3">
+                            <span class="w-7 h-7 rounded-full bg-blue-900 text-white font-bold flex items-center justify-center shrink-0">3</span>
+                            <div>
+                                <strong class="text-slate-900 text-sm block">Formal DOPS Sign-Off Assessments (×3)</strong>
+                                <p class="text-slate-600">Successfully complete 3 formal Direct Observation of Procedural Skills (DOPS) assessments evaluated by an approved senior assessor (Specialist Nurse, ED Consultant, Registrar).</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive DOPS Checklist Tracker -->
+                <div class="lg:col-span-5 bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-bold text-lg text-slate-800 mb-2">DOPS Trainee Progress Counter</h3>
+                        <p class="text-xs text-slate-500 mb-4">Track trainee requirements toward independent sign-off:</p>
+
+                        <div class="space-y-3 text-xs">
+                            <label class="flex items-center justify-between p-3 rounded-lg bg-slate-50 border">
+                                <span>Theory Module Completed</span>
+                                <input type="checkbox" id="dops-1" onchange="updateDopsProgress()" class="h-4 w-4 text-blue-600">
+                            </label>
+                            <label class="flex items-center justify-between p-3 rounded-lg bg-slate-50 border">
+                                <span>Simulation Workshop Completed</span>
+                                <input type="checkbox" id="dops-2" onchange="updateDopsProgress()" class="h-4 w-4 text-blue-600">
+                            </label>
+                            <label class="flex items-center justify-between p-3 rounded-lg bg-slate-50 border">
+                                <span>Supervised Logbook (10-15 attempts)</span>
+                                <input type="checkbox" id="dops-3" onchange="updateDopsProgress()" class="h-4 w-4 text-blue-600">
+                            </label>
+                            <label class="flex items-center justify-between p-3 rounded-lg bg-slate-50 border">
+                                <span>3 Formal DOPS Assessments Signed</span>
+                                <input type="checkbox" id="dops-4" onchange="updateDopsProgress()" class="h-4 w-4 text-blue-600">
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 p-4 rounded-lg bg-blue-50 border border-blue-200 text-center">
+                        <span class="text-xs font-bold text-blue-800 uppercase tracking-wider block">Credentialing Status</span>
+                        <strong id="dops-status-text" class="text-base font-extrabold text-blue-900 block mt-1">Incomplete (0/4 Steps)</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sequencing Reference List -->
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-3">
+                <h3 class="font-bold text-slate-800 text-base border-b pb-2">Academic & Governance References</h3>
+                <ol class="list-decimal list-inside space-y-2 text-xs text-slate-600 leading-relaxed">
+                    <li><strong>van Loon, F., et al. (2019).</strong> The Modified A-DIVA Scale as a Predictive Tool for Prospective Identification of Adult Patients at Risk of a Difficult Intravenous Access: A Multicenter Validation Study. <em>Journal of Clinical Medicine</em>, 8(2), p.144.</li>
+                    <li><strong>Tada, M., et al. (2022).</strong> Ultrasound guidance versus landmark method for peripheral venous cannulation in adults. <em>Cochrane Database of Systematic Reviews</em>, 12(12), CD013434.</li>
+                    <li><strong>UK Health Security Agency (UKHSA). (2023).</strong> Good infection prevention practice: using ultrasound gel. <em>GOV.UK Guidance Standard</em>.</li>
+                    <li><strong>Nyhsen, C.M., et al. (2017).</strong> Infection prevention and control in ultrasound – best practice recommendations from the European Society of Radiology (ESR) Ultrasound Working Group. <em>Insights into Imaging</em>, 8(6), pp.523–535.</li>
+                    <li><strong>Bahl, A., et al. (2020).</strong> Ultralong Versus Standard Long Peripheral Intravenous Catheters: A Randomized Controlled Trial of Ultrasonographically Guided Catheter Survival. <em>Annals of Emergency Medicine</em>, 76(2), pp.134–142.</li>
+                    <li><strong>Moore, C.L., & Copel, J.A. (2011).</strong> Point-of-Care Ultrasonography. <em>New England Journal of Medicine</em>, 364(8), pp.749–757.</li>
+                    <li><strong>Thomas, S., & Moore, C.L. (2013).</strong> The Vanishing Target Sign: Confirmation of Intraluminal Needle Position for Ultrasound Guided Vascular Access. <em>Academic Emergency Medicine</em>, 20(10), pp.e17–e18.</li>
+                    <li><strong>Geeky Medics. (2023).</strong> Ultrasound-Guided Intravenous Cannulation - OSCE & Clinical Guide.</li>
+                    <li><strong>Mind The Bleep. (2023).</strong> Anatomy and sono-anatomy of the forearm for ultrasound-guided cannulation.</li>
+                </ol>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-6 text-xs border-t border-slate-800 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <p class="font-bold text-slate-200">Hampshire Hospitals NHS Foundation Trust (HHFT)</p>
+                <p>Clinical Governance & Educational Framework for USGPIVC</p>
+            </div>
+            <p class="text-slate-500">Designed for Junior Doctors, Specialist Nurses & Clinical Educators.</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript Logic & App State -->
+    <script>
+        // Session and Audit Tracker Setup
+        const SESSION_ID = 'SESSION-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+        let auditLogs = JSON.parse(localStorage.getItem('hhft_usg_audit_logs') || '[]');
+        let googleSyncConfig = localStorage.getItem('hhft_usg_ga_config') || '';
+
+        function logAuditEvent(actionName) {
+            const entry = {
+                timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+                action: actionName,
+                sessionId: SESSION_ID,
+                synced: googleSyncConfig ? 'Pending/Synced' : 'Local Only'
+            };
+
+            auditLogs.unshift(entry);
+            if (auditLogs.length > 100) auditLogs.pop(); // keep last 100
+            localStorage.setItem('hhft_usg_audit_logs', JSON.stringify(auditLogs));
+
+            renderAuditTable();
+
+            // Dispatch to Google Apps Script / Webhook if configured
+            if (googleSyncConfig && googleSyncConfig.startsWith('http')) {
+                try {
+                    fetch(googleSyncConfig, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(entry)
+                    }).catch(e => console.log('Google Sync error:', e));
+                } catch(e) {}
+            }
+
+            // Google Analytics 4 Event Dispatcher if GA ID present
+            if (window.gtag && googleSyncConfig && googleSyncConfig.startsWith('G-')) {
+                window.gtag('event', 'user_interaction', {
+                    'event_category': 'USG_Portal',
+                    'event_label': actionName,
+                    'session_id': SESSION_ID
+                });
+            }
+        }
+
+        function renderAuditTable() {
+            const tbody = document.getElementById('audit-log-tbody');
+            const countEl = document.getElementById('tracker-events-count');
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+            countEl.textContent = `Total Events Tracked: ${auditLogs.length}`;
+
+            if (auditLogs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400 italic">No activity recorded yet. Interact with the portal to generate logs.</td></tr>`;
+                return;
+            }
+
+            auditLogs.slice(0, 15).forEach(log => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50";
+                tr.innerHTML = `
+                    <td class="p-2.5 font-mono text-slate-500">${log.timestamp}</td>
+                    <td class="p-2.5 font-bold text-slate-800">${log.action}</td>
+                    <td class="p-2.5 font-mono text-xs text-slate-500">${log.sessionId}</td>
+                    <td class="p-2.5"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${log.synced.includes('Synced') ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'}">${log.synced}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function saveGoogleConfig() {
+            const input = document.getElementById('ga-id-input').value.trim();
+            googleSyncConfig = input;
+            localStorage.setItem('hhft_usg_ga_config', input);
+
+            const statusDot = document.getElementById('tracker-status-dot');
+            const statusText = document.getElementById('tracker-status-text');
+
+            if (input.startsWith('G-')) {
+                statusDot.className = "w-2.5 h-2.5 bg-sky-500 rounded-full animate-pulse";
+                statusText.textContent = `Synced with Google Analytics (${input})`;
+                loadGoogleAnalyticsScript(input);
+            } else if (input.startsWith('http')) {
+                statusDot.className = "w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse";
+                statusText.textContent = "Synced with Google Webhook / Sheet";
+            } else {
+                statusDot.className = "w-2.5 h-2.5 bg-amber-500 rounded-full";
+                statusText.textContent = "Local Logging Active (No Google ID)";
+            }
+
+            logAuditEvent('Google Account Configuration Updated');
+            alert('Google Sync configuration updated successfully.');
+        }
+
+        function loadGoogleAnalyticsScript(gaId) {
+            if (document.getElementById('ga-script')) return;
+            const script = document.createElement('script');
+            script.id = 'ga-script';
+            script.async = true;
+            script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
+            document.head.appendChild(script);
+
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            window.gtag = gtag;
+            gtag('js', new Date());
+            gtag('config', gaId);
+        }
+
+        function exportAuditCSV() {
+            if (auditLogs.length === 0) {
+                alert('No audit logs available to export.');
+                return;
+            }
+            let csvContent = "data:text/csv;charset=utf-8,Timestamp,Action Event,Session ID,Sync Status\n";
+            auditLogs.forEach(l => {
+                csvContent += `"${l.timestamp}","${l.action}","${l.sessionId}","${l.synced}"\n`;
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `HHFT_USG_Audit_Log_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            logAuditEvent('Exported Audit Log CSV');
+        }
+
+        function clearAuditLog() {
+            if (confirm('Are you sure you want to clear the local interaction log?')) {
+                auditLogs = [];
+                localStorage.removeItem('hhft_usg_audit_logs');
+                renderAuditTable();
+            }
+        }
+
+        // Tab Navigation Logic
+        function switchTab(tabId) {
+            const sections = ['overview', 'anatomy', 'sop', 'slides', 'workshop', 'governance'];
+            sections.forEach(sec => {
+                document.getElementById(`sec-${sec}`).classList.add('hidden');
+                document.getElementById(`tab-${sec}`).classList.remove('active');
+            });
+
+            document.getElementById(`sec-${tabId}`).classList.remove('hidden');
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+
+            logAuditEvent(`Tab View: ${tabId.toUpperCase()}`);
+
+            // Trigger geometry canvas redraw if SOP tab clicked
+            if (tabId === 'sop') {
+                setTimeout(drawStatic45Diagram, 50);
+            }
+        }
+
+        // A-DIVA Calculator Logic
+        function calcAdiva() {
+            let score = 0;
+            for (let i = 1; i <= 5; i++) {
+                if (document.getElementById(`adiva-${i}`).checked) {
+                    score++;
+                }
+            }
+
+            const numEl = document.getElementById('adiva-score-num');
+            const badgeEl = document.getElementById('adiva-risk-badge');
+            const rateEl = document.getElementById('adiva-failure-rate');
+            const actionEl = document.getElementById('adiva-action-text');
+            const boxEl = document.getElementById('adiva-result-box');
+
+            numEl.textContent = `${score} / 5`;
+
+            let category = "Low Risk";
+            if (score <= 1) {
+                category = "Low Risk";
+                badgeEl.textContent = category;
+                badgeEl.className = "px-3 py-1 bg-emerald-200 text-emerald-900 text-xs font-bold rounded-full";
+                rateEl.textContent = "Predicted Failure Rate: ~4%";
+                actionEl.innerHTML = "<strong>Clinical Action:</strong> Proceed with standard landmark-guided cannulation.";
+                boxEl.className = "mt-6 p-4 rounded-lg bg-emerald-50 border border-emerald-200 transition-all";
+            } else if (score <= 3) {
+                category = "Moderate Risk";
+                badgeEl.textContent = category;
+                badgeEl.className = "px-3 py-1 bg-amber-200 text-amber-900 text-xs font-bold rounded-full";
+                rateEl.textContent = "Predicted Failure Rate: ~37%";
+                actionEl.innerHTML = "<strong>Clinical Action:</strong> Escalation to Ultrasound-Guided Cannulation strongly recommended.";
+                boxEl.className = "mt-6 p-4 rounded-lg bg-amber-50 border border-amber-200 transition-all";
+            } else {
+                category = "High Risk";
+                badgeEl.textContent = category;
+                badgeEl.className = "px-3 py-1 bg-rose-200 text-rose-900 text-xs font-bold rounded-full";
+                rateEl.textContent = "Predicted Failure Rate: ~94%";
+                actionEl.innerHTML = "<strong>Clinical Action:</strong> Real-Time Ultrasound-Guided Access is MANDATORY on initial attempt.";
+                boxEl.className = "mt-6 p-4 rounded-lg bg-rose-50 border border-rose-200 transition-all";
+            }
+
+            logAuditEvent(`A-DIVA Calculated: Score ${score} (${category})`);
+        }
+
+        // Sono-Anatomy Structural Switcher Data
+        const structureData = {
+            vein: {
+                title: "Target Vein Profile",
+                shape: "Oval to Circular (Transverse)",
+                wall: "Thin, smooth, moderately hyperechoic wall",
+                pulsatility: "Non-pulsatile",
+                compressibility: "Fully collapses under light transducer pressure",
+                doppler: "Continuous low-velocity flow towards heart",
+                action: "PREFERRED TARGET",
+                color: "emerald"
+            },
+            artery: {
+                title: "Companion Artery Hazard Profile",
+                shape: "Circular (Transverse)",
+                wall: "Thick, prominent hyperechoic muscular wall",
+                pulsatility: "Highly pulsatile",
+                compressibility: "Resists compression; pulsates under light pressure",
+                doppler: "High-velocity pulsatile arterial flow",
+                action: "DO NOT CANNULATE (Risk of severe haematoma)",
+                color: "rose"
+            },
+            nerve: {
+                title: "Peripheral Nerve Hazard Profile",
+                shape: "Round to Oval fascicular structure",
+                wall: "Honeycomb pattern with bright neural sheath",
+                pulsatility: "Non-pulsatile",
+                compressibility: "Completely non-compressible",
+                doppler: "Avascular (No internal color signal)",
+                action: "AVOID (Risk of neural deficit & severe shock pain)",
+                color: "amber"
+            }
+        };
+
+        function switchStructure(type) {
+            ['vein', 'artery', 'nerve'].forEach(t => {
+                const btn = document.getElementById(`struct-tab-${t}`);
+                if (t === type) {
+                    btn.className = "px-4 py-2 rounded-lg text-xs font-bold bg-blue-900 text-white transition";
+                } else {
+                    btn.className = "px-4 py-2 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition";
+                }
+            });
+
+            const data = structureData[type];
+            const panel = document.getElementById('structure-detail-panel');
+
+            panel.innerHTML = `
+                <div class="space-y-1">
+                    <span class="text-xs font-bold text-slate-500 uppercase">Structure</span>
+                    <strong class="text-sm text-slate-900 block font-extrabold">${data.title}</strong>
+                    <span class="text-xs px-2 py-0.5 bg-${data.color}-100 text-${data.color}-800 font-bold rounded inline-block mt-1">${data.action}</span>
+                </div>
+                <div class="space-y-1">
+                    <span class="text-xs font-bold text-slate-500 uppercase">Cross-Section & Wall</span>
+                    <p class="text-xs text-slate-700"><strong>Shape:</strong> ${data.shape}</p>
+                    <p class="text-xs text-slate-700"><strong>Wall:</strong> ${data.wall}</p>
+                </div>
+                <div class="space-y-1">
+                    <span class="text-xs font-bold text-slate-500 uppercase">Physical Response</span>
+                    <p class="text-xs text-slate-700"><strong>Pulsatility:</strong> ${data.pulsatility}</p>
+                    <p class="text-xs text-slate-700"><strong>Compressibility:</strong> ${data.compressibility}</p>
+                </div>
+                <div class="space-y-1">
+                    <span class="text-xs font-bold text-slate-500 uppercase">Doppler Signature</span>
+                    <p class="text-xs text-slate-700">${data.doppler}</p>
+                </div>
+            `;
+
+            logAuditEvent(`Sono-Anatomy Inspect: ${type.toUpperCase()}`);
+        }
+
+        // Render Static 45-Degree Equidistant Geometry Diagram on Canvas
+        function drawStatic45Diagram() {
+            const canvas = document.getElementById('static45Canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const startX = 140;
+            const startY = 55;
+            const depthPx = 110;
+            const distPx = 110; // Equidistant for 45 degrees
+
+            // Skin Surface Line
+            ctx.strokeStyle = '#94A3B8';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(30, startY);
+            ctx.lineTo(430, startY);
+            ctx.stroke();
+
+            // Skin Label
+            ctx.fillStyle = '#CBD5E1';
+            ctx.font = 'bold 11px sans-serif';
+            ctx.fillText('Skin Surface Layer', 35, startY - 10);
+
+            // Target Vessel (Vein)
+            const vesselX = startX;
+            const vesselY = startY + depthPx;
+
+            ctx.fillStyle = '#0284C7';
+            ctx.beginPath();
+            ctx.arc(vesselX, vesselY, 20, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.strokeStyle = '#38BDF8';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 11px sans-serif';
+            ctx.fillText('Target Vein', vesselX - 28, vesselY + 4);
+
+            // Transducer Probe Box
+            ctx.fillStyle = '#38BDF8';
+            ctx.fillRect(vesselX - 35, startY - 18, 70, 18);
+            ctx.fillStyle = '#0F172A';
+            ctx.font = 'bold 10px sans-serif';
+            ctx.fillText('US Probe Face', vesselX - 32, startY - 5);
+
+            // Vertical Depth Line (h)
+            ctx.strokeStyle = '#38BDF8';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(vesselX, startY);
+            ctx.lineTo(vesselX, vesselY);
+            ctx.stroke();
+
+            ctx.fillStyle = '#38BDF8';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.fillText('Depth (h)', vesselX - 60, startY + (depthPx / 2));
+
+            // Entry Point
+            const entryX = vesselX + distPx;
+            ctx.fillStyle = '#EF4444';
+            ctx.beginPath();
+            ctx.arc(entryX, startY, 5, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // Horizontal Entry Distance Line (d = h)
+            ctx.strokeStyle = '#10B981';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(vesselX, startY);
+            ctx.lineTo(entryX, startY);
+            ctx.stroke();
+
+            ctx.fillStyle = '#10B981';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.fillText('Entry Distance (d = h)', vesselX + 15, startY - 10);
+
+            // Needle Path (Solid line at 45 deg)
+            ctx.setLineDash([]);
+            ctx.strokeStyle = '#F59E0B';
+            ctx.lineWidth = 3.5;
+            ctx.beginPath();
+            ctx.moveTo(entryX + 30, startY - 30);
+            ctx.lineTo(vesselX, vesselY);
+            ctx.stroke();
+
+            // Angle Indicator Arc at Entry
+            ctx.strokeStyle = '#F59E0B';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(entryX, startY, 25, Math.PI, Math.PI * 0.75, true);
+            ctx.stroke();
+
+            ctx.fillStyle = '#F59E0B';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.fillText('45° Approach Angle', entryX + 10, startY + 25);
+            ctx.fillText('Needle Trajectory', entryX + 35, startY - 32);
+        }
+
+        // VBG Blood Gas Protocol Analyzer
+        function checkVBG() {
+            const po2 = parseFloat(document.getElementById('vbg-po2').value);
+            const pco2 = parseFloat(document.getElementById('vbg-pco2').value);
+            const so2 = parseFloat(document.getElementById('vbg-so2').value);
+
+            const statusEl = document.getElementById('vbg-status');
+            const descEl = document.getElementById('vbg-desc');
+            const boxEl = document.getElementById('vbg-result');
+
+            if (po2 > 9.0 || so2 > 90) {
+                statusEl.textContent = "🚨 CRITICAL: Arterial Entry Confirmed";
+                statusEl.className = "text-lg font-extrabold text-rose-700 mt-1";
+                descEl.innerHTML = "<strong>IMMEDIATE ACTION REQUIRED:</strong><br>1. Halt drug administration immediately.<br>2. Remove catheter now.<br>3. Apply firm manual pressure over site for 10-15 minutes.<br>4. Monitor limb for haematoma or neurovascular deficit.";
+                boxEl.className = "p-4 rounded-xl bg-rose-50 border border-rose-300 h-full flex flex-col justify-center";
+                logAuditEvent('VBG Evaluated: ARTERIAL PUNCTURE CONFIRMED');
+            } else {
+                statusEl.textContent = "✅ Venous Placement Confirmed";
+                statusEl.className = "text-lg font-extrabold text-emerald-700 mt-1";
+                descEl.innerHTML = "<strong>CLINICAL ACTION:</strong> Blood gas profile aligns with venous blood (pCO₂ ~5.3-6.6 kPa, pO₂ ~4.0-5.3 kPa). Proceed with flushing line and applying sterile transparent dressing.";
+                boxEl.className = "p-4 rounded-xl bg-emerald-50 border border-emerald-300 h-full flex flex-col justify-center";
+                logAuditEvent('VBG Evaluated: Venous Placement Confirmed');
+            }
+        }
+
+        // 15-Minute Theory Slide Deck Engine
+        const slideData = [
+            {
+                title: "Slide 1: Title & Learning Objectives",
+                time: "1.0 min",
+                content: `
+                    <h3 class="text-xl font-bold text-sky-300">Ultrasound-Guided Peripheral Intravenous Cannulation</h3>
+                    <p class="text-xs text-slate-300">HHFT SOP Governance & Clinical Skill Module</p>
+                    <ul class="text-xs space-y-2 mt-4 text-slate-200">
+                        <li class="flex items-center gap-2">🎯 <strong>Objective 1:</strong> Identify DIVA patients using the A-DIVA assessment.</li>
+                        <li class="flex items-center gap-2">🎯 <strong>Objective 2:</strong> Master high-frequency probe controls and infection rules.</li>
+                        <li class="flex items-center gap-2">🎯 <strong>Objective 3:</strong> Differentiate veins, companion arteries, and nerves.</li>
+                        <li class="flex items-center gap-2">🎯 <strong>Objective 4:</strong> Perform Vanishing Target Tip Tracking safely.</li>
+                    </ul>
+                `,
+                script: "Welcome everyone. Today we introduce the HHFT standardized framework for Ultrasound-Guided Peripheral Cannulation. By the end of this 15-minute deck and practical workshop, you will be equipped to manage difficult vascular access safely and independently."
+            },
+            {
+                title: "Slide 2: The DIVA Challenge & Evidence",
+                time: "1.5 mins",
+                content: `
+                    <h3 class="text-xl font-bold text-sky-300">Why Transition to Ultrasound Guidance?</h3>
+                    <div class="grid grid-cols-2 gap-4 my-2 text-xs">
+                        <div class="bg-slate-800 p-3 rounded-lg border border-slate-700">
+                            <strong class="text-rose-400 block mb-1">Conventional Blind Failures</strong>
+                            <p class="text-slate-300">Repeated attempts cause tissue trauma, venous depletion, patient distress, and treatment delays.</p>
+                        </div>
+                        <div class="bg-slate-800 p-3 rounded-lg border border-slate-700">
+                            <strong class="text-emerald-400 block mb-1">Cochrane Systematic Review</strong>
+                            <p class="text-slate-300">High-level evidence proves real-time USG elevates first-pass success rate in DIVA patients from 45% to over 82%.</p>
+                        </div>
+                    </div>
+                `,
+                script: "In acute hospital admissions, up to 30% of inpatients present with difficult access. Cochrane systematic reviews confirm that real-time ultrasound guidance significantly increases first-attempt success, reduces needle sticks, and avoids unnecessary central line placements."
+            },
+            {
+                title: "Slide 3: Transducer Selection & Image Controls",
+                time: "1.5 mins",
+                content: `
+                    <h3 class="text-xl font-bold text-sky-300">High-Frequency Linear Array Transducer</h3>
+                    <p class="text-xs text-slate-300">Linear probes (7.5 - 15 MHz) generate short soundwaves optimized for shallow structures.</p>
+                    <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 text-xs space-y-2 mt-2">
+                        <div class="flex justify-between">
+                            <span class="text-sky-300 font-bold">Depth Control:</span>
+                            <span>Set total depth &lt; 3.0 cm (Display just beyond posterior wall).</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sky-300 font-bold">Gain Control:</span>
+                            <span>Adjust so vessel lumen appears completely black (anechoic).</span>
+                        </div>
+                    </div>
+                `,
+                script: "Always select the high-frequency linear probe for superficial vascular access. Curvilinear or cardiac probes operate at lower frequencies and lack resolution. Keep display depth restricted to under 3 cm so small vessels are not scaled down."
+            },
+            {
+                title: "Slide 4: Upper Limb Venous Hierarchy",
+                time: "1.5 mins",
+                content: `
+                    <h3 class="text-xl font-bold text-sky-300">Target Selection & No-Go Zones</h3>
+                    <ul class="text-xs space-y-2 text-slate-200">
+                        <li class="p-2 bg-emerald-950/60 border border-emerald-500/30 rounded">
+                            🟢 <strong>Forearm Cephalic & Basilic Veins:</strong> Primary target zone. Safe, predictable, away from major arterial trunks.
+                        </li>
+                        <li class="p-2 bg-amber-950/60 border border-amber-500/30 rounded">
+                            🟡 <strong>Median Cubital Vein:</strong> Avoid if possible due to flexion kinking and mechanical phlebitis.
+                        </li>
+                        <li class="p-2 bg-rose-950/60 border border-rose-500/30 rounded">
+                            🔴 <strong>Upper Arm Deep Veins:</strong> Deep brachial veins are reserved for specialist PICC/Midline teams.
+                        </li>
+                    </ul>
+                `,
+                script: "Focus your search on the superficial veins of the forearm—specifically the forearm cephalic and basilic veins. Avoid the upper arm deep brachial structures unless you are part of the specialist vascular access team."
+            },
+            {
+                title: "Slide 5: Sono-Anatomy & BART Rule",
+                time: "1.5 mins",
+                content: `
+                    <h3 class="text-xl font-bold text-sky-300">Differentiating Veins, Arteries & Nerves</h3>
+                    <div class="grid grid-cols-3 gap-2 text-center text-xs my-2">
+                        <div class="p-2 bg-slate-800 rounded border border-slate-700">
+                            <strong class="text-emerald-400 block">Vein</strong>
+                            <span>Oval, compressible, non-pulsatile.</span>
+                        </div>
+                        <div class="p-2 bg-slate-800 rounded border border-slate-700">
+                            <strong class="text-rose-400 block">Artery</strong>
+                            <span>Circular, thick wall, pulsatile.</span>
+                        </div>
+                        <div class="p-2 bg-slate-800 rounded border border-slate-700">
+                            <strong class="text-amber-400 block">Nerve</strong>
+                            <span>Honeycomb fascicles, non-compressible.</span>
+                        </div>
+                    </div>
+                `,
+                script: "Never rely on a single feature to identify a vessel. Perform compression testing: veins collapse completely under light transducer pressure, whereas arteries resist compression. Remember BART—Blue Away, Red Towards—for Color Doppler."
+            },
+            {
+                title: "Slide 6: Asepsis & Equipment Requirements",
+                time: "1.5 mins",
+                content: `
+                    <h3 class="text-xl font-bold text-sky-300">UKHSA & ESR Infection Control Rules</h3>
+                    <ul class="text-xs space-y-2 text-slate-200">
+                        <li class="flex items-center gap-2">🧼 Clean probe and cable with Clinell Universal Wipes before and after use.</li>
+                        <li class="flex items-center gap-2">🛡️ Deploy sterile probe cover kit for every procedure.</li>
+                        <li class="flex items-center gap-2">💧 <strong>MANDATORY:</strong> Single-use sterile gel sachets inside AND outside cover.</li>
+                        <li class="flex items-center gap-2">📏 Select long catheter (&ge; 40-45 mm) to prevent extravasation.</li>
+                    </ul>
+                `,
+                script: "UKHSA guidelines strictly mandate the use of single-use sterile gel sachets for all invasive ultrasound procedures. Non-sterile gel bottles are prohibited across all HHFT clinical areas to eliminate bloodstream infection risks."
+            },
+            {
+                title: "Slide 7: Short-Axis vs Long-Axis Planes",
+                time: "1.5 mins",
+                content: `
+                    <h3 class="text-xl font-bold text-sky-300">Imaging Planes Comparison</h3>
+                    <div class="grid grid-cols-2 gap-4 text-xs">
+                        <div class="p-3 bg-slate-800 rounded-lg border border-slate-700">
+                            <strong class="text-sky-300 block mb-1">Short-Axis (Out-of-Plane)</strong>
+                            <p class="text-slate-300">Transverse circular vessel view. Easier alignment. Primary recommended technique for junior operators.</p>
+                        </div>
+                        <div class="p-3 bg-slate-800 rounded-lg border border-slate-700">
+                            <strong class="text-sky-300 block mb-1">Long-Axis (In-Plane)</strong>
+                            <p class="text-slate-300">Longitudinal tubular view. Full needle shaft seen. Technically challenging alignment.</p>
+                        </div>
+                    </div>
+                `,
+                script: "This protocol mandates the Short-Axis (Out-of-Plane) approach combined with the Vanishing Target Technique as the primary technique for junior doctors due to its simpler technical alignment."
+            },
+            {
+                title: "Slide 8: Vanishing Target Technique",
+                time: "2.0 mins",
+                content: `
+                    <h3 class="text-xl font-bold text-sky-300">Dynamic Tip Tracking Sequence</h3>
+                    <ol class="text-xs space-y-1.5 text-slate-200 list-decimal list-inside">
+                        <li>Position skin entry point using 45° Equidistant Rule ($d = h$).</li>
+                        <li>Enter skin at 45° angle until needle tip depresses anterior wall.</li>
+                        <li>Slide probe 1-2 mm proximally until dot disappears (Vanishing Target Sign).</li>
+                        <li>Advance needle 1-2 mm until dot reappears in center of lumen.</li>
+                    </ol>
+                `,
+                script: "Remember, in short-axis, a bright dot can be either the needle tip or shaft. Sliding the probe ahead until the dot vanishes, then advancing the needle until it reappears, ensures true tip tracking and prevents back-wall puncture."
+            },
+            {
+                title: "Slide 9: Complications & VBG Verification",
+                time: "1.5 mins",
+                content: `
+                    <h3 class="text-xl font-bold text-sky-300">Safety & Arterial Entry Verification</h3>
+                    <p class="text-xs text-slate-300 mb-2">If needle tip is lost: STOP needle movement immediately. Slide probe back to skin entry point to re-acquire.</p>
+                    <div class="p-3 bg-rose-950/60 border border-rose-500/30 rounded text-xs text-rose-200">
+                        <strong>Ambiguous Entry Protocol:</strong> Aspirate blood into heparinized syringe and run point-of-care VBG. If pO₂ &gt; 9.0 kPa or sO₂ &gt; 90%, remove catheter immediately and apply pressure for 10-15 mins.
+                    </div>
+                `,
+                script: "Never advance a needle that is not clearly visualized. If placement is ambiguous or you suspect accidental arterial puncture, run an immediate VBG. Arterial profile requires immediate catheter removal and direct pressure."
+            },
+            {
+                title: "Slide 10: HHFT Credentialing & Logbook",
+                time: "1.5 mins",
+                content: `
+                    <h3 class="text-xl font-bold text-sky-300">Pathway to Independent Practice</h3>
+                    <ul class="text-xs space-y-2 text-slate-200">
+                        <li>1. Complete 15-min theory module + 45-min simulation workshop.</li>
+                        <li>2. Perform 10 to 15 direct/indirectly supervised clinical procedures.</li>
+                        <li>3. Complete 3 formal DOPS assessments with a designated senior assessor.</li>
+                    </ul>
+                `,
+                script: "To complete sign-off, maintain your supervised logbook of 10 to 15 procedures and trigger 3 formal DOPS assessments when ready. Annual re-auditing will be overseen by the HHFT Governance Group."
+            }
+        ];
+
+        let currentSlide = 0;
+        let timerInterval = null;
+        let timerSeconds = 0;
+
+        function renderSlide() {
+            const slide = slideData[currentSlide];
+            document.getElementById('slide-num-badge').textContent = `Slide ${currentSlide + 1} of ${slideData.length}`;
+            document.getElementById('slide-time-alloc').textContent = `Time: ${slide.time}`;
+            document.getElementById('slide-content-area').innerHTML = slide.content;
+            document.getElementById('speaker-script-text').textContent = `"${slide.script}"`;
+
+            // Render Dots
+            const dotsContainer = document.getElementById('slide-dots-container');
+            dotsContainer.innerHTML = '';
+            slideData.forEach((_, idx) => {
+                const dot = document.createElement('button');
+                dot.onclick = () => { currentSlide = idx; renderSlide(); };
+                dot.className = `w-2.5 h-2.5 rounded-full transition-all ${idx === currentSlide ? 'bg-sky-400 w-5' : 'bg-slate-700 hover:bg-slate-500'}`;
+                dotsContainer.appendChild(dot);
+            });
+        }
+
+        function changeSlide(delta) {
+            currentSlide = Math.max(0, Math.min(slideData.length - 1, currentSlide + delta));
+            renderSlide();
+            logAuditEvent(`Slide Change: Slide ${currentSlide + 1}`);
+        }
+
+        function toggleTimer() {
+            const btn = document.getElementById('timer-btn');
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                btn.textContent = "Start";
+                logAuditEvent('Slide Timer Paused');
+            } else {
+                btn.textContent = "Pause";
+                logAuditEvent('Slide Timer Started');
+                timerInterval = setInterval(() => {
+                    timerSeconds++;
+                    const mins = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
+                    const secs = String(timerSeconds % 60).padStart(2, '0');
+                    document.getElementById('slide-timer-display').textContent = `${mins}:${secs} / 15:00`;
+                }, 1000);
+            }
+        }
+
+        // DOPS Progress Tracker
+        function updateDopsProgress() {
+            let count = 0;
+            for (let i = 1; i <= 4; i++) {
+                if (document.getElementById(`dops-${i}`).checked) count++;
+            }
+            const el = document.getElementById('dops-status-text');
+            if (count === 4) {
+                el.textContent = "✅ Fully Credentialed for Independent USGPIVC";
+                el.className = "text-base font-extrabold text-emerald-900 block mt-1";
+            } else {
+                el.textContent = `Incomplete (${count}/4 Steps Completed)`;
+                el.className = "text-base font-extrabold text-blue-900 block mt-1";
+            }
+
+            logAuditEvent(`DOPS Progress Updated: ${count}/4 Steps`);
+        }
+
+        // Initialize App & Charts on Load
+        document.addEventListener('DOMContentLoaded', () => {
+            switchStructure('vein');
+            renderSlide();
+            calcAdiva();
+
+            // Populate Google config input if saved
+            if (googleSyncConfig) {
+                document.getElementById('ga-id-input').value = googleSyncConfig;
+                if (googleSyncConfig.startsWith('G-')) loadGoogleAnalyticsScript(googleSyncConfig);
+            }
+
+            logAuditEvent('Portal Application Loaded');
+
+            // Chart 1: A-DIVA Failure Probability
+            const ctx1 = document.getElementById('adivaChart').getContext('2d');
+            new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: ['Score 0-1 (Low)', 'Score 2-3 (Moderate)', 'Score 4-5 (High)'],
+                    datasets: [{
+                        label: 'First-Attempt Failure Risk (%)',
+                        data: [4, 37, 94],
+                        backgroundColor: ['#10B981', '#F59E0B', '#EF4444'],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: { display: true, text: 'Failure Probability (%)' }
+                        }
+                    }
+                }
+            });
+
+            // Chart 2: Cochrane Evidence Comparison
+            const ctx2 = document.getElementById('cochraneChart').getContext('2d');
+            new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: ['Landmark Method', 'Real-Time Ultrasound'],
+                    datasets: [{
+                        label: 'First-Pass Success Rate (%)',
+                        data: [44.2, 82.5],
+                        backgroundColor: ['#94A3B8', '#0284C7'],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: { display: true, text: 'Success Rate (%)' }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
